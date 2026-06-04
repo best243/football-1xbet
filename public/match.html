@@ -1,10 +1,140 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-<meta charset="utf-8">
-<title>Error</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FootLive — Match en direct</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/assets/style.css"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>"/>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 </head>
 <body>
-<pre>Error: EPERM: operation not permitted, open &#39;/Users/apple/Documents/Projets/complete web site/football-1xbet/public/match.html&#39;</pre>
+
+<div class="gambling-bar">
+  ⚠️ Les paris sportifs comportent un risque de dépendance.
+  <a href="https://www.joueurs-info-service.fr" target="_blank" rel="noopener">09 74 75 13 13</a>
+</div>
+
+<header class="site-header">
+  <div class="logo">
+    <a href="/" style="display:flex;align-items:center;gap:.45rem">
+      <span class="logo-icon">⚽</span>
+      <div><span class="logo-name">FootLive</span><span class="logo-sub">SCORES EN DIRECT</span></div>
+    </a>
+  </div>
+  <div class="header-tabs">
+    <div class="htab" onclick="history.back()">← Tous les matchs</div>
+  </div>
+</header>
+
+<div id="match-wrap">
+
+  <div class="match-header">
+    <div class="mh-league" id="mh-league"></div>
+    <div class="mh-body">
+      <div class="mh-team" id="mh-home"></div>
+      <div class="mh-center">
+        <div class="mh-score" id="mh-score"></div>
+        <div class="mh-badge" id="mh-badge"></div>
+      </div>
+      <div class="mh-team" id="mh-away" style="align-items:flex-end"></div>
+    </div>
+  </div>
+
+  <div class="match-tabs">
+    <div class="mtab active" onclick="showTab('stream',this)">▶ Streaming</div>
+    <div class="mtab" onclick="showTab('prono',this)">🤖 Pronostic</div>
+    <div class="mtab" onclick="showTab('chat',this)">💬 Chat</div>
+    <div class="mtab" onclick="showTab('paris',this)">🎯 Paris</div>
+  </div>
+
+  <div class="match-layout">
+    <div class="stream-main" style="padding:.85rem">
+
+      <div id="tab-stream">
+        <div class="sources-bar" id="sources-bar"></div>
+        <div class="stream-error" id="stream-error"></div>
+        <div class="player-wrap" id="player-container">
+          <div class="stream-placeholder">
+            <span class="ph-icon">📺</span><p>Chargement du lecteur…</p>
+          </div>
+        </div>
+        <div class="stream-notice">
+          ℹ️ Les flux sont fournis à titre indicatif. FootLive ne diffuse pas de contenu piraté.
+          Si un flux est indisponible, essayez une autre source.
+        </div>
+      </div>
+
+      <div id="tab-prono" style="display:none">
+        <div class="m-section">
+          <div class="m-section-head">🤖 Analyse IA — Modèle Poisson</div>
+          <div class="m-section-body" id="prono-detail"></div>
+        </div>
+      </div>
+
+      <div id="tab-chat" style="display:none">
+        <div class="m-section">
+          <div class="m-section-head">💬 Chat en direct</div>
+          <div class="chat-wrap">
+            <div id="chat-login" class="chat-username-form">
+              <p>Entrez un pseudo pour rejoindre le chat :</p>
+              <form id="chat-username-form">
+                <input id="chat-username-input" type="text" placeholder="Votre pseudo…" minlength="2" maxlength="25" required/>
+                <button type="submit">Rejoindre</button>
+              </form>
+            </div>
+            <div id="chat-room" style="display:none;flex-direction:column;flex:1;min-height:0">
+              <div class="chat-messages" id="chat-messages">
+                <div class="chat-empty">Soyez le premier à commenter !</div>
+              </div>
+              <form class="chat-form" id="chat-msg-form">
+                <input id="chat-msg-input" type="text" placeholder="Votre message…" maxlength="280" autocomplete="off"/>
+                <button type="submit">Envoyer</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-paris" style="display:none">
+        <div class="m-section">
+          <div class="m-section-head">🎯 Partenaires paris sportifs</div>
+          <div class="m-section-body" id="bm-list"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <aside class="match-sidebar">
+      <div class="ad-block" style="min-height:120px">Espace publicitaire AdSense</div>
+      <div class="m-section">
+        <div class="m-section-head">📊 Pronostic rapide</div>
+        <div class="m-section-body" id="quick-pred-sidebar"></div>
+      </div>
+      <div class="ad-block" style="min-height:200px">Espace publicitaire AdSense</div>
+    </aside>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  © 2024 FootLive — Pronostics à titre éducatif uniquement. Paris réservés aux +18 ans.
+</footer>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/assets/pronostic.js"></script>
+<script src="/assets/match.js"></script>
+<script src="/assets/chatbot.js"></script>
+<script>
+function showTab(name, el) {
+  ['stream','prono','chat','paris'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===name?'block':'none';
+  });
+  document.querySelectorAll('.mtab').forEach(t => t.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+</script>
 </body>
 </html>

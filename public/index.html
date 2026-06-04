@@ -1,10 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-<meta charset="utf-8">
-<title>Error</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FootLive — Scores & Streaming Football</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/assets/style.css"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>"/>
 </head>
 <body>
-<pre>Error: EPERM: operation not permitted, open &#39;/Users/apple/Documents/Projets/complete web site/football-1xbet/public/index.html&#39;</pre>
+
+<div class="gambling-bar">
+  ⚠️ Les paris sportifs comportent un risque de dépendance. Jouez de façon responsable.
+  <a href="https://www.joueurs-info-service.fr" target="_blank" rel="noopener">Joueurs Info Service : 09 74 75 13 13</a>
+</div>
+
+<div class="ticker">
+  <div class="ticker-label">⚽ LIVE</div>
+  <div class="ticker-track"><div class="ticker-inner"></div></div>
+</div>
+
+<header class="site-header">
+  <div class="logo">
+    <span class="logo-icon">⚽</span>
+    <div><span class="logo-name">FootLive</span><span class="logo-sub">SCORES EN DIRECT</span></div>
+  </div>
+  <div class="header-tabs">
+    <div class="htab active" onclick="setFilter('all',this)">Tous les matchs</div>
+    <div class="htab" onclick="setFilter('live',this)">
+      🔴 En direct <span class="tab-count" id="live-count">0</span>
+    </div>
+    <div class="htab" onclick="setFilter('today',this)">À venir</div>
+    <div class="htab" onclick="setFilter('ft',this)">Terminés</div>
+  </div>
+  <div class="header-right">
+    <div class="live-count-badge"><span id="live-count-badge">0</span> LIVE</div>
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" placeholder="Rechercher…" oninput="searchMatches(this.value)"/>
+    </div>
+    <div style="display:flex;align-items:center;gap:.3rem">
+      <span id="conn-dot" style="width:7px;height:7px;border-radius:50%;background:#e5332e;flex-shrink:0"></span>
+      <span id="last-update" style="font-size:.68rem;color:var(--text3)">Connexion…</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar-left">
+    <div class="sl-section">
+      <div class="sl-title">Sports</div>
+      <ul>
+        <li class="sport-item active">⚽ Football <span class="sport-count" id="total-count"></span></li>
+        <li class="sport-item" style="opacity:.4;pointer-events:none">🏀 Basketball</li>
+        <li class="sport-item" style="opacity:.4;pointer-events:none">🎾 Tennis</li>
+      </ul>
+    </div>
+    <div class="sl-section">
+      <div class="sl-title">Championnats</div>
+      <ul id="league-list"></ul>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="filter-bar">
+      <div class="filter-tab active" onclick="setFilter('all',this)">Tous</div>
+      <div class="filter-tab" onclick="setFilter('live',this)">En direct</div>
+      <div class="filter-tab" onclick="setFilter('today',this)">À venir</div>
+      <div class="filter-tab" onclick="setFilter('ft',this)">Terminés</div>
+    </div>
+    <div class="col-header">
+      <div>Heure</div><div>Match</div>
+      <div class="ch-probs"><span class="ch-prob">1</span><span class="ch-prob">X</span><span class="ch-prob">2</span></div>
+      <div></div>
+    </div>
+    <div id="matches-container">
+      <div style="padding:2.5rem;text-align:center;color:var(--text3)">
+        <div class="spinner" style="margin:0 auto 1rem"></div>Chargement…
+      </div>
+    </div>
+  </main>
+
+  <aside class="sidebar-right">
+    <div class="sr-widget">
+      <div class="sr-title">⭐ Match vedette</div>
+      <div class="sr-body"><div class="featured-match" id="featured-widget"></div></div>
+    </div>
+    <div class="sr-widget">
+      <div class="sr-body"><div class="ad-block" style="min-height:100px">Espace publicitaire AdSense</div></div>
+    </div>
+    <div class="sr-widget">
+      <div class="sr-title">🤖 Pronostics IA</div>
+      <div class="sr-body"><div id="quick-preds"></div></div>
+    </div>
+    <div class="sr-widget">
+      <div class="sr-title">🎯 Paris sportifs</div>
+      <div class="sr-body" id="bookmakers-wrap"></div>
+    </div>
+  </aside>
+</div>
+
+<footer class="site-footer">
+  © 2024 FootLive — Scores en direct & pronostics IA. Pronostics à titre éducatif uniquement.<br>
+  Paris réservés aux personnes majeures (18+). Jouer comporte des risques.
+</footer>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/assets/pronostic.js"></script>
+<script src="/assets/app.js"></script>
+<script src="/assets/chatbot.js"></script>
+<script>
+function searchMatches(q) {
+  if (!q) { renderAll(); return; }
+  const ql = q.toLowerCase();
+  const filtered = allMatches.filter(m =>
+    m.home.toLowerCase().includes(ql) || m.away.toLowerCase().includes(ql) || m.league.toLowerCase().includes(ql));
+  const grouped = groupByLeague(filtered);
+  let html = '';
+  for (const [l, ms] of Object.entries(grouped)) html += renderLeagueBlock(l, ms);
+  document.getElementById('matches-container').innerHTML = html ||
+    '<div class="no-matches"><div class="no-matches-icon">🔍</div>Aucun résultat</div>';
+}
+</script>
 </body>
 </html>
