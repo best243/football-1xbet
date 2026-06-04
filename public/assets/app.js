@@ -130,14 +130,22 @@ function renderMatchRow(m) {
   const homeWinner = isFT && m.hs > m.as;
   const awayWinner = isFT && m.as > m.hs;
 
+  // Utilise le vrai logo si disponible, sinon un point coloré
+  const homeDot = m.homeCrest
+    ? `<img class="team-crest" src="${m.homeCrest}" alt="" onerror="this.outerHTML='<span class=\\'team-dot\\' style=\\'background:${m.homeC}\\'></span>'">`
+    : `<span class="team-dot" style="background:${m.homeC}"></span>`;
+  const awayDot = m.awayCrest
+    ? `<img class="team-crest" src="${m.awayCrest}" alt="" onerror="this.outerHTML='<span class=\\'team-dot\\' style=\\'background:${m.awayC}\\'></span>'">`
+    : `<span class="team-dot" style="background:${m.awayC}"></span>`;
+
   const teamsCol = `
     <div class="team-line">
-      <span class="team-dot" style="background:${m.homeC}"></span>
+      ${homeDot}
       <span class="team-name-txt ${homeWinner?'winner':''}">${m.home}</span>
       <span class="score-inline ${isLive?'live-score':''}">${isLive||isFT?m.hs:''}</span>
     </div>
     <div class="team-line">
-      <span class="team-dot" style="background:${m.awayC}"></span>
+      ${awayDot}
       <span class="team-name-txt ${awayWinner?'winner':''}">${m.away}</span>
       <span class="score-inline ${isLive?'live-score':''}">${isLive||isFT?m.as:''}</span>
     </div>`;
@@ -180,7 +188,25 @@ function goMatch(id, e) {
 
 function buildTicker() {
   const live = allMatches.filter(m => m.status === 'LIVE');
-  if (!live.length) { document.querySelector('.ticker').style.display = 'none'; return; }
+  const ticker = document.querySelector('.ticker');
+  if (!ticker) return;
+  if (!live.length) {
+    // Pas de match live : afficher les prochains matchs dans le ticker
+    const upcoming = allMatches.filter(m => m.status === 'NS').slice(0, 8);
+    if (!upcoming.length) { ticker.style.display = 'none'; return; }
+    ticker.style.display = 'flex';
+    const items = [...upcoming, ...upcoming].map(m => `
+      <span class="ticker-item" data-id="${m.id}" onclick="goMatch('${m.id}',event)">
+        ${m.flag} <strong>${m.homeS}</strong>
+        <span class="t-score" style="color:var(--text2)">${m.time}</span>
+        <strong>${m.awayS}</strong>
+      </span>`).join('');
+    document.querySelector('.ticker-inner').innerHTML = items;
+    document.querySelector('.ticker-label').innerHTML = '📅 À VENIR';
+    return;
+  }
+  ticker.style.display = 'flex';
+  document.querySelector('.ticker-label').innerHTML = '⚽ LIVE';
   const items = [...live, ...live].map(m => `
     <span class="ticker-item" data-id="${m.id}" onclick="goMatch('${m.id}',event)">
       ${m.flag} <strong>${m.homeS}</strong>
@@ -242,10 +268,12 @@ function buildFeaturedMatch() {
   const pred = PRONO.predict(m);
   const isLive = m.status === 'LIVE';
   const isFT   = m.status === 'FT';
-  function avatar(initials, color) {
-    const r=parseInt(color.replace('#','').slice(0,2),16);
-    const g=parseInt(color.replace('#','').slice(2,4),16);
-    const b=parseInt(color.replace('#','').slice(4,6),16);
+  function avatar(initials, color, crest) {
+    if (crest) return `<img class="fm-avatar fm-avatar-img" src="${crest}" alt="${initials}"
+      onerror="this.outerHTML='<div class=\\'fm-avatar\\' style=\\'background:${color};color:#fff\\'>${initials}</div>'">`;
+    const r=parseInt((color+'000000').slice(1,3),16);
+    const g=parseInt((color+'000000').slice(3,5),16);
+    const b=parseInt((color+'000000').slice(5,7),16);
     const fg=(r*299+g*587+b*114)/1000>145?'#111':'#fff';
     return `<div class="fm-avatar" style="background:${color};color:${fg}">${initials}</div>`;
   }
@@ -254,13 +282,13 @@ function buildFeaturedMatch() {
   fw.innerHTML = `
     <div class="fm-league">${m.flag} ${m.league}${isLive?` · <span style="color:var(--red)">${m.min}'</span>`:''}</div>
     <div class="fm-teams">
-      <div class="fm-team">${avatar(m.homeS,m.homeC)}<span class="fm-name">${m.home}</span></div>
+      <div class="fm-team">${avatar(m.homeS,m.homeC,m.homeCrest)}<span class="fm-name">${m.home}</span></div>
       <div>
         ${isLive||isFT?`<div class="fm-score">${m.hs}<span style="color:var(--text3);font-size:1.2rem;margin:0 .2rem">-</span>${m.as}</div>`
           :`<div class="fm-score" style="font-size:1.2rem;color:var(--text2)">${m.time}</div>`}
         <div class="fm-status">${isLive?`Live ${m.min}'`:isFT?'Terminé':'À venir'}</div>
       </div>
-      <div class="fm-team">${avatar(m.awayS,m.awayC)}<span class="fm-name">${m.away}</span></div>
+      <div class="fm-team">${avatar(m.awayS,m.awayC,m.awayCrest)}<span class="fm-name">${m.away}</span></div>
     </div>
     <div class="fm-probs">
       <div class="fm-prob-box"><span class="fm-pl">1</span><span class="fm-pv">${pred.hw}%</span></div>

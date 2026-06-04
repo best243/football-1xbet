@@ -53,8 +53,10 @@ async function init() {
   socket.on('chat',        msg  => appendChatMsg(msg));
 }
 
-function avatar(s, c) {
-  const r=parseInt(c.slice(1,3),16),g=parseInt(c.slice(3,5),16),b=parseInt(c.slice(5,7),16);
+function avatar(s, c, crest) {
+  if (crest) return `<img class="mh-avatar mh-avatar-img" src="${crest}" alt="${s}"
+    onerror="this.outerHTML='<div class=\\'mh-avatar\\' style=\\'background:${c};color:#fff\\'>${s}</div>'">`;
+  const r=parseInt((c+'000000').slice(1,3),16),g=parseInt((c+'000000').slice(3,5),16),b=parseInt((c+'000000').slice(5,7),16);
   const fg=(r*299+g*587+b*114)/1000>145?'#111':'#fff';
   return `<div class="mh-avatar" style="background:${c};color:${fg}">${s}</div>`;
 }
@@ -62,8 +64,8 @@ function avatar(s, c) {
 function renderHeader() {
   const m=matchData;
   document.getElementById('mh-league').innerHTML = `${m.flag} ${m.league}`;
-  document.getElementById('mh-home').innerHTML   = `${avatar(m.homeS,m.homeC)}<span class="mh-name">${m.home}</span>`;
-  document.getElementById('mh-away').innerHTML   = `${avatar(m.awayS,m.awayC)}<span class="mh-name">${m.away}</span>`;
+  document.getElementById('mh-home').innerHTML   = `${avatar(m.homeS,m.homeC,m.homeCrest)}<span class="mh-name">${m.home}</span>`;
+  document.getElementById('mh-away').innerHTML   = `${avatar(m.awayS,m.awayC,m.awayCrest)}<span class="mh-name">${m.away}</span>`;
   refreshScore();
 }
 

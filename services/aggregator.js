@@ -55,8 +55,30 @@ const TEAM_COLORS = {
   'AFC Ajax':'#D2001E','PSV':'#E62020','Feyenoord':'#CC0000',
 };
 
+// Couleurs équipes nationales (Coupe du Monde 2026)
+const NATIONAL_COLORS = {
+  'France':'#002395','Germany':'#000000','Spain':'#AA151B','Portugal':'#006600',
+  'Argentina':'#74ACDF','Brazil':'#009C3B','England':'#FFFFFF','Netherlands':'#FF4500',
+  'Belgium':'#000000','Italy':'#0066CC','Croatia':'#FF0000','Uruguay':'#75AADB',
+  'Switzerland':'#FF0000','Denmark':'#C60C30','Austria':'#ED2939','Sweden':'#006AA7',
+  'Poland':'#DC143C','Czechia':'#D7141A','Slovakia':'#0B4EA2','Serbia':'#C6363C',
+  'Ukraine':'#005BBB','Scotland':'#003087','Wales':'#C8102E','Turkey':'#E30A17',
+  'Morocco':'#006233','Senegal':'#00853F','Ivory Coast':'#F77F00','Ghana':'#006B3F',
+  'Cameroon':'#007A5E','Nigeria':'#008751','Tunisia':'#E70013','Egypt':'#CE1126',
+  'Algeria':'#006233','South Africa':'#007A4D','Kenya':'#006600',
+  'Mexico':'#006847','United States':'#B22234','Canada':'#FF0000',
+  'Ecuador':'#FFD100','Colombia':'#FCD116','Chile':'#D52B1E',
+  'Peru':'#D91023','Venezuela':'#CF142B','Bolivia':'#009A44',
+  'Japan':'#BC002D','South Korea':'#CD2E3A','Korea Republic':'#CD2E3A',
+  'Australia':'#00008B','Iran':'#239F40','Saudi Arabia':'#006C35',
+  'Qatar':'#8D1B3D','China':'#DE2910','Iraq':'#CE1126','Uzbekistan':'#1EB53A',
+  'New Zealand':'#000000','Haiti':'#00209F','Scotland':'#003087',
+  'Jamaica':'#000000','Honduras':'#0073CF','Panama':'#005293',
+  'Costa Rica':'#002B7F','Guatemala':'#4997D0',
+};
+
 function getTeamColor(name) {
-  return TEAM_COLORS[name] || '#444';
+  return TEAM_COLORS[name] || NATIONAL_COLORS[name] || '#1a3a6b';
 }
 
 // ── Données mock (fallback si toutes les API échouent) ────────────────────────
