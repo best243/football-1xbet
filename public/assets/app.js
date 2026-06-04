@@ -335,60 +335,90 @@ function buildBookmakers() {
 // ── Mini player chaînes sport live ────────────────────────────────────────────
 
 let _chHls = null;
+let _chActive = -1;
 
 function initChannelPlayer() {
   const btns = document.getElementById('channel-btns');
   if (!btns || typeof LIVE_CHANNELS === 'undefined' || !LIVE_CHANNELS.length) return;
 
   btns.innerHTML = LIVE_CHANNELS.map((c, i) => `
-    <button class="ch-btn${i === 0 ? ' active' : ''}" onclick="loadChannel(${i})">
+    <button class="ch-btn" onclick="loadChannel(${i})">
       <span class="ch-flag">${c.flag}</span>
-      <span class="ch-info"><span class="ch-name">${c.name}</span><span class="ch-note">${c.note}</span></span>
+      <span class="ch-info">
+        <span class="ch-name">${c.name}</span>
+        <span class="ch-note">${c.note}</span>
+      </span>
+      <span class="ch-play-icon">▶</span>
     </button>`).join('');
-
-  // Charger la 1ère chaîne automatiquement (muet par défaut)
-  loadChannel(0);
+  // Pas d'autoload : attendre le clic de l'utilisateur
+  // (Chrome bloque autoplay sans interaction)
 }
 
 function loadChannel(i) {
+  if (_chActive === i) return; // déjà la bonne chaîne
+  _chActive = i;
+
   document.querySelectorAll('.ch-btn').forEach((b, j) => b.classList.toggle('active', i === j));
   const ch = LIVE_CHANNELS[i];
   const pc = document.getElementById('channel-player');
   if (!pc || !ch) return;
 
-  // Détruire l'instance HLS précédente
   if (_chHls) { _chHls.destroy(); _chHls = null; }
 
   if (ch.type === 'youtube') {
-    pc.innerHTML = `<iframe class="ch-iframe" src="${ch.url}"
-      allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
+    // YouTube : ajouter autoplay UNIQUEMENT après clic utilisateur (gesture = OK)
+    const ytUrl = ch.url.includes('autoplay') ? ch.url : ch.url + '&autoplay=1';
+    pc.innerHTML = `<iframe class="ch-iframe"
+      src="${ytUrl}"
+      allow="autoplay;fullscreen;encrypted-media;picture-in-picture"
+      allowfullscreen></iframe>`;
     return;
   }
 
-  // HLS
+  // HLS — afficher le loader puis lancer
   pc.innerHTML = `
     <video id="ch-video" class="ch-video" controls playsinline muted></video>
-    <div class="ch-loading"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div></div>`;
+    <div class="ch-loading"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div>
+      <span style="font-size:.68rem;color:var(--text2);margin-top:.3rem">Connexion…</span></div>`;
 
   const v = document.getElementById('ch-video');
 
   if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-    _chHls = new Hls({ enableWorker: true, lowLatencyMode: true });
+    _chHls = new Hls({
+      enableWorker:    true,
+      lowLatencyMode:  true,
+      maxBufferLength: 15,
+      xhrSetup: (xhr) => { xhr.withCredentials = false; },
+    });
     _chHls.loadSource(ch.url);
     _chHls.attachMedia(v);
     _chHls.on(Hls.Events.MANIFEST_PARSED, () => {
       pc.querySelector('.ch-loading')?.remove();
-      v.play().catch(() => {});
+      v.play().catch(() => {
+        // Autoplay refusé (rare avec muted) → montrer le bouton play natif
+        pc.querySelector('.ch-loading')?.remove();
+      });
     });
     _chHls.on(Hls.Events.ERROR, (_, d) => {
-      if (d.fatal) pc.innerHTML = `<div class="ch-error">📺 Flux indisponible<br><small>Essayez une autre chaîne</small></div>`;
+      if (d.fatal) {
+        _chActive = -1;
+        pc.innerHTML = `<div class="ch-error">
+          📡 Flux momentanément indisponible
+          <small>Réessayez dans quelques instants</small>
+          <button onclick="loadChannel(${i})" style="margin-top:.5rem;padding:.3rem .7rem;background:var(--yellow);color:#000;border:none;border-radius:3px;cursor:pointer;font-size:.7rem;font-weight:700">↻ Relancer</button>
+        </div>`;
+      }
     });
   } else if (v && v.canPlayType('application/vnd.apple.mpegurl')) {
+    // Safari natif
     v.src = ch.url;
-    pc.querySelector('.ch-loading')?.remove();
-    v.play().catch(() => {});
+    v.addEventListener('loadedmetadata', () => { pc.querySelector('.ch-loading')?.remove(); v.play().catch(()=>{}); }, { once: true });
+    v.addEventListener('error', () => {
+      _chActive = -1;
+      pc.innerHTML = `<div class="ch-error">📡 Flux indisponible</div>`;
+    }, { once: true });
   } else {
-    pc.innerHTML = `<div class="ch-error">📺 HLS non supporté<br><small>Utilisez Chrome ou Firefox</small></div>`;
+    pc.innerHTML = `<div class="ch-error">⚠️ HLS non supporté<br><small>Utilisez Chrome ou Firefox</small></div>`;
   }
 }
 
