@@ -3,8 +3,10 @@
 // Spécialité : Bundesliga, Champions League, Europa League, Coupe du monde
 // Limite : 1000 req/h par IP → on peut poller toutes les 30 s sans souci
 
-const axios = require('axios');
-const cache = require('./cache');
+const axios  = require('axios');
+const https  = require('https');
+const cache  = require('./cache');
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const BASE = 'https://api.openligadb.de';
 
@@ -87,7 +89,7 @@ function transformMatch(m, leagueMeta) {
 
 async function fetchLeagueMatches(league) {
   const url = `${BASE}/getmatchdata/${league.code}/${league.season}`;
-  const res  = await axios.get(url, { timeout: 6000 });
+  const res  = await axios.get(url, { timeout: 6000, httpsAgent });
   return (res.data || [])
     .filter(m => isToday(m.matchDateTimeUTC))
     .map(m => transformMatch(m, league));

@@ -3,7 +3,11 @@
 // Limites : 10 req/min | Ligues : PL, PD, FL1, SA, BL1, CL, PPL, EC, DED, BSA, WC
 
 const axios  = require('axios');
+const https  = require('https');
 const cache  = require('./cache');
+
+// Contournement SSL macOS (certificat racine manquant en dev local)
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const BASE   = 'https://api.football-data.org/v4';
 const KEY    = process.env.FOOTBALL_DATA_KEY;
@@ -89,16 +93,34 @@ function transformMatch(m) {
 
 async function get(path, params = {}) {
   if (!ENABLED) throw new Error('football-data.org non configuré');
-  const res = await axios.get(`${BASE}${path}`, { headers: HEADERS, params, timeout: 8000 });
+  const res = await axios.get(`${BASE}${path}`, {
+    headers: HEADERS, params, timeout: 15000, httpsAgent,
+  });
   return res.data;
 }
 
-// Matchs du jour (cache 5 min)
+// Matchs du jour — fenêtres glissantes de 10 jours max (limite API)
+// Si pas de match aujourd'hui, cherche automatiquement dans les 60 prochains jours
 async function fetchTodayMatches() {
   return cache.getOrSet('fd:today', async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const data  = await get('/matches', { dateFrom: today, dateTo: today });
-    return (data.matches || []).map(transformMatch);
+    // Fenêtre 1 : aujourd'hui + 9 jours
+    for (let offset = 0; offset <= 60; offset += 10) {
+      const from = new Date(); from.setDate(from.getDate() + offset);
+      const to   = new Date(); to.setDate(to.getDate() + Math.min(offset + 9, offset === 0 ? 0 : offset + 9));
+      const dateFrom = from.toISOString().split('T')[0];
+      const dateTo   = to.toISOString().split('T')[0];
+
+      const data = await get('/matches', { dateFrom, dateTo });
+      const list = data.matches || [];
+
+      if (list.length > 0) {
+        if (offset > 0) {
+          console.log(`[FD] Intersaison — ${list.length} matchs trouvés à partir du ${dateFrom}`);
+        }
+        return list.map(transformMatch);
+      }
+    }
+    return [];
   }, 5 * 60 * 1000);
 }
 

@@ -2,8 +2,10 @@
 // Utilisé pour : logos équipes, couleurs, infos visuelles
 // Limite : 30 req/min — on cache agressivement (24 h par équipe)
 
-const axios = require('axios');
-const cache = require('./cache');
+const axios  = require('axios');
+const https  = require('https');
+const cache  = require('./cache');
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const BASE = 'https://www.thesportsdb.com/api/v1/json/3';
 const TTL  = 24 * 60 * 60 * 1000; // 24 h
@@ -13,7 +15,7 @@ async function fetchTeamInfo(teamName) {
   const key = `tsdb:${teamName.toLowerCase().replace(/\s+/g, '_')}`;
   return cache.getOrSet(key, async () => {
     const res  = await axios.get(`${BASE}/searchteams.php`, {
-      params: { t: teamName }, timeout: 5000,
+      params: { t: teamName }, timeout: 5000, httpsAgent,
     });
     const team = res.data?.teams?.[0];
     if (!team) return null;
