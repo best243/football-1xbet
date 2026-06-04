@@ -304,8 +304,69 @@ function buildBookmakers() {
     <div class="bm-legal">Publicité. Risque de dépendance. Appelez le 09 74 75 13 13.</div>`;
 }
 
+// ── Mini player chaînes sport live ────────────────────────────────────────────
+
+let _chHls = null;
+
+function initChannelPlayer() {
+  const btns = document.getElementById('channel-btns');
+  if (!btns || typeof LIVE_CHANNELS === 'undefined' || !LIVE_CHANNELS.length) return;
+
+  btns.innerHTML = LIVE_CHANNELS.map((c, i) => `
+    <button class="ch-btn${i === 0 ? ' active' : ''}" onclick="loadChannel(${i})">
+      <span class="ch-flag">${c.flag}</span>
+      <span class="ch-info"><span class="ch-name">${c.name}</span><span class="ch-note">${c.note}</span></span>
+    </button>`).join('');
+
+  // Charger la 1ère chaîne automatiquement (muet par défaut)
+  loadChannel(0);
+}
+
+function loadChannel(i) {
+  document.querySelectorAll('.ch-btn').forEach((b, j) => b.classList.toggle('active', i === j));
+  const ch = LIVE_CHANNELS[i];
+  const pc = document.getElementById('channel-player');
+  if (!pc || !ch) return;
+
+  // Détruire l'instance HLS précédente
+  if (_chHls) { _chHls.destroy(); _chHls = null; }
+
+  if (ch.type === 'youtube') {
+    pc.innerHTML = `<iframe class="ch-iframe" src="${ch.url}"
+      allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
+    return;
+  }
+
+  // HLS
+  pc.innerHTML = `
+    <video id="ch-video" class="ch-video" controls playsinline muted></video>
+    <div class="ch-loading"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div></div>`;
+
+  const v = document.getElementById('ch-video');
+
+  if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+    _chHls = new Hls({ enableWorker: true, lowLatencyMode: true });
+    _chHls.loadSource(ch.url);
+    _chHls.attachMedia(v);
+    _chHls.on(Hls.Events.MANIFEST_PARSED, () => {
+      pc.querySelector('.ch-loading')?.remove();
+      v.play().catch(() => {});
+    });
+    _chHls.on(Hls.Events.ERROR, (_, d) => {
+      if (d.fatal) pc.innerHTML = `<div class="ch-error">📺 Flux indisponible<br><small>Essayez une autre chaîne</small></div>`;
+    });
+  } else if (v && v.canPlayType('application/vnd.apple.mpegurl')) {
+    v.src = ch.url;
+    pc.querySelector('.ch-loading')?.remove();
+    v.play().catch(() => {});
+  } else {
+    pc.innerHTML = `<div class="ch-error">📺 HLS non supporté<br><small>Utilisez Chrome ou Firefox</small></div>`;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   connectSocket();
   loadMatches();
   setInterval(loadMatches, 60000);
+  initChannelPlayer();
 });

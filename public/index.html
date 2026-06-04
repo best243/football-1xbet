@@ -87,6 +87,18 @@
       <div class="sr-title">⭐ Match vedette</div>
       <div class="sr-body"><div class="featured-match" id="featured-widget"></div></div>
     </div>
+    <!-- Widget chaînes sport live -->
+    <div class="sr-widget">
+      <div class="sr-title">📺 Chaînes Sport Live</div>
+      <div class="sr-body">
+        <div class="channel-btns" id="channel-btns"></div>
+        <div class="channel-player" id="channel-player">
+          <div class="ch-placeholder">📺<br><span>Sélectionnez une chaîne</span></div>
+        </div>
+        <div class="channel-notice">⚠️ Chaînes gratuites en clair uniquement</div>
+      </div>
+    </div>
+
     <div class="sr-widget">
       <div class="sr-body"><div class="ad-block" style="min-height:100px">Espace publicitaire AdSense</div></div>
     </div>
@@ -106,8 +118,10 @@
   Paris réservés aux personnes majeures (18+). Jouer comporte des risques.
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/assets/pronostic.js"></script>
+<script src="/assets/channels.js"></script>
 <script src="/assets/app.js"></script>
 <script src="/assets/chatbot.js"></script>
 <script>

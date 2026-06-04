@@ -465,3 +465,30 @@ ul{list-style:none}
 .fb-footer-note{font-size:.6rem;color:var(--text3);text-align:center;padding:.3rem;
   background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0}
 @media(max-width:500px){#fb-window{width:calc(100vw - 2rem)}#fb-widget{right:1rem;bottom:1rem}}
+
+/* ── Widget Chaînes Sport Live ────────────────────────────────────────────── */
+.channel-btns{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.5rem}
+.ch-btn{
+  display:flex;align-items:center;gap:.5rem;
+  padding:.4rem .6rem;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:3px;cursor:pointer;transition:all .15s;text-align:left;width:100%}
+.ch-btn:hover,.ch-btn.active{background:var(--yellow);border-color:var(--yellow)}
+.ch-btn:hover .ch-name,.ch-btn.active .ch-name{color:#000;font-weight:700}
+.ch-btn:hover .ch-note,.ch-btn.active .ch-note{color:rgba(0,0,0,.6)}
+.ch-flag{font-size:.95rem;flex-shrink:0}
+.ch-info{display:flex;flex-direction:column;gap:.05rem;min-width:0}
+.ch-name{font-size:.75rem;font-weight:600;color:var(--text);line-height:1.2}
+.ch-note{font-size:.6rem;color:var(--text3)}
+.ch-video,.ch-iframe{width:100%;aspect-ratio:16/9;display:block;border:none;border-radius:3px;background:#000}
+.ch-loading{display:flex;align-items:center;justify-content:center;
+  aspect-ratio:16/9;background:#000;border-radius:3px}
+.ch-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  aspect-ratio:16/9;background:var(--bg3);border-radius:3px;
+  font-size:1.5rem;color:var(--text3);gap:.4rem;text-align:center}
+.ch-placeholder span{font-size:.7rem;display:block}
+.ch-error{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  aspect-ratio:16/9;background:var(--bg3);border-radius:3px;
+  font-size:.8rem;color:var(--text3);text-align:center;gap:.3rem}
+.ch-error small{font-size:.65rem;color:var(--text3)}
+.channel-notice{font-size:.6rem;color:var(--text3);margin-top:.4rem;text-align:center}
+.channel-player{margin-bottom:.25rem;border-radius:3px;overflow:hidden}

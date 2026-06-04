@@ -6,7 +6,20 @@ const { Server } = require('socket.io');
 const cors       = require('cors');
 const cron       = require('node-cron');
 const path       = require('path');
+const https      = require('https');
+const axios      = require('axios');
 const aggregator = require('./services/aggregator');
+
+// ── Relay IPTV — domaines autorisés (chaînes gratuites légales uniquement) ─────
+const RELAY_ALLOWED = [
+  'dshn8inoshngm.cloudfront.net',       // L'Équipe TV (iptv-org officiel)
+  'raw.githubusercontent.com',           // streams GitHub iptv-org
+  'paradistv.github.io',                 // Equidia (ParaTV)
+  'equidia.fr',
+];
+const relayCache   = new Map();           // url → { content, ts }
+const RELAY_TTL    = 30 * 1000;          // 30 secondes
+const relayAgent   = new https.Agent({ rejectUnauthorized: false });
 
 const app    = express();
 const server = http.createServer(app);
@@ -53,6 +66,60 @@ async function loadMatches() {
 }
 
 // ── REST API ───────────────────────────────────────────────────────────────────
+
+// Proxy relay m3u8 — résout les problèmes CORS pour les chaînes IPTV gratuites
+app.get('/api/relay', async (req, res) => {
+  const rawUrl = req.query.url;
+  if (!rawUrl) return res.status(400).send('url manquante');
+
+  let targetUrl;
+  try { targetUrl = decodeURIComponent(rawUrl); } catch {
+    return res.status(400).send('url invalide');
+  }
+
+  // Sécurité : vérifier que le domaine est dans la whitelist
+  let hostname;
+  try { hostname = new URL(targetUrl).hostname; } catch {
+    return res.status(400).send('url malformée');
+  }
+  if (!RELAY_ALLOWED.some(d => hostname === d || hostname.endsWith('.' + d))) {
+    return res.status(403).send('domaine non autorisé');
+  }
+
+  // Cache
+  const cached = relayCache.get(targetUrl);
+  if (cached && Date.now() - cached.ts < RELAY_TTL) {
+    res.set('Content-Type', 'application/vnd.apple.mpegurl');
+    res.set('Access-Control-Allow-Origin', '*');
+    return res.send(cached.content);
+  }
+
+  try {
+    const response = await axios.get(targetUrl, {
+      timeout: 8000, httpsAgent: relayAgent,
+      responseType: 'text',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FootLive/1.0)' },
+    });
+
+    // Réécrire les URLs relatives en absolues dans le m3u8
+    const base    = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
+    const content = response.data.split('\n').map(line => {
+      const l = line.trim();
+      if (!l || l.startsWith('#')) return line;
+      // Ligne de segment ou de sous-playlist
+      if (l.startsWith('http://') || l.startsWith('https://')) return line;
+      return base + l;
+    }).join('\n');
+
+    relayCache.set(targetUrl, { content, ts: Date.now() });
+    res.set('Content-Type', 'application/vnd.apple.mpegurl');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.send(content);
+  } catch (e) {
+    console.warn('[RELAY] Erreur :', targetUrl, e.message);
+    res.status(502).send('flux inaccessible');
+  }
+});
 
 app.get('/api/health', (req, res) => {
   const apis = {
